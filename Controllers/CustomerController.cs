@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IndustryConnect_Week5_WebApi.Models;
+using IndustryConnect_Week5_WebApi.Dtos;
+using IndustryConnect_Week5_WebApi.Mappers;
 
 namespace IndustryConnect_Week5_WebApi.Controllers
 {
@@ -22,14 +24,23 @@ namespace IndustryConnect_Week5_WebApi.Controllers
 
         // GET: api/Customer
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetCustomers()
         {
-            return await _context.Customers.ToListAsync();
+            var customers = await _context.Customers.Select(s => CustomerMapper.EntityToDto(s)).ToListAsync();
+
+            if (customers.Count > 0)
+            {
+                return Ok(customers);
+            }
+            else
+            {
+                return BadRequest("There are no customers at the moment");
+            }
         }
 
         // GET: api/Customer/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Customer>> GetCustomer(int id)
+        public async Task<ActionResult<CustomerDto>> GetCustomer(int id)
         {
             var customer = await _context.Customers.FindAsync(id);
 
@@ -38,20 +49,21 @@ namespace IndustryConnect_Week5_WebApi.Controllers
                 return NotFound();
             }
 
-            return customer;
+            return CustomerMapper.EntityToDto(customer);
         }
 
         // PUT: api/Customer/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCustomer(int id, Customer customer)
+        public async Task<IActionResult> PutCustomer(int id, CustomerDto customer)
         {
             if (id != customer.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(customer).State = EntityState.Modified;
+            var entity = CustomerMapper.DtoToEntity(customer);
+            _context.Entry(entity).State = EntityState.Modified;
 
             try
             {
@@ -69,18 +81,19 @@ namespace IndustryConnect_Week5_WebApi.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok(CustomerMapper.EntityToDto(entity));
         }
 
         // POST: api/Customer
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
+        public async Task<ActionResult<CustomerDto>> PostCustomer(CustomerDto customer)
         {
-            _context.Customers.Add(customer);
+            var entity = CustomerMapper.DtoToEntity(customer);
+            _context.Customers.Add(entity);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetCustomer", new { id = customer.Id }, customer);
+            return CreatedAtAction("GetCustomer", new { id = customer.Id }, CustomerMapper.EntityToDto(entity));
         }
 
         // DELETE: api/Customer/5
